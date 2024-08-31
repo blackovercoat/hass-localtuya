@@ -44,6 +44,8 @@ send_cloud_command:
       name: "Body"
       description: "Reqquest body include command to device"
       required: true
-      example: '{ "remote_no_dp_key": value }'
+      example: 'commands:
+                  - code: remote_no_dp_key
+                    value: real_value'
       selector:
         object:
