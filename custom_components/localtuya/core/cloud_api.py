@@ -78,6 +78,8 @@ class TuyaCloudApi:
 
     def generate_payload(self, method, timestamp, url, headers, body=None):
         """Generate signed payload for requests."""
+        if body is not None:
+            body = json.dumps(body)
         payload = self._client_id + self._access_token + timestamp
 
         payload += method + "\n"
@@ -334,6 +336,23 @@ class TuyaCloudApi:
             self.cached_device_list.update({device_id: self.device_list[device_id]})
 
         return device_data
+
+    async def async_command_to_device(self, device_id, reqbody) -> dict[str, dict]:
+        """Send command to device"""
+        resp = await self.async_make_request(
+            "POST", url=f"/v1.0/iot-03/devices/{device_id}/commands", body=reqbody
+        )
+
+        if not resp:
+            raise Exception("Cloud API sent command failed! with unknow error!")
+        if not resp.ok:
+            raise Exception("Request failed, status " + str(resp.status))
+
+        r_json = resp.json()
+        if not r_json["success"]:
+            raise Exception("Error {r_json['code']}: {r_json['msg']}")
+
+        return r_json["result"], "ok"
 
     async def async_connect(self):
         """Connect to cloudAPI"""

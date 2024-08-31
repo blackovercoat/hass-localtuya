@@ -28,3 +28,22 @@ set_dp:
       example: '{ "1": True, "2": True }'
       selector:
         object:
+
+send_cloud_command:
+  name: "Send cloud command"
+  description: Send command to device via cloud
+  fields:
+    device_id:
+      name: "Device ID"
+      description: Device ID of device to change datapoint value for
+      required: true
+      example: 11100118278aab4de001
+      selector:
+        text:
+    body:
+      name: "Body"
+      description: "Reqquest body include command to device"
+      required: true
+      example: '{ "remote_no_dp_key": value }'
+      selector:
+        object:

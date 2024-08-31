@@ -51,6 +51,16 @@ UNSUB_LISTENER = "unsub_listener"
 
 CONF_DP = "dp"
 CONF_VALUE = "value"
+REQ_DEVICE_ID = "device_id"
+REQ_BODY = "body"
+
+SERVICE_SEND_CLOUD_COMMAND = "send_cloud_command"
+SERVICE_SEND_CLOUD_COMMAND_SCHEMA = vol.Schema(
+    {
+        vol.Required(REQ_DEVICE_ID): cv.string,
+        vol.Required(REQ_BODY): object,
+    }
+)
 
 SERVICE_SET_DP = "set_dp"
 SERVICE_SET_DP_SCHEMA = vol.Schema(
@@ -80,6 +90,25 @@ async def async_setup(hass: HomeAssistant, config: dict):
             for entry in current_entries
         ]
         await asyncio.gather(*reload_tasks)
+
+    async def _handle_send_cloud_command(event: ServiceCall):
+        """Handle send cloud command service call."""
+        _LOGGER.info("Service %s.cloud called: send command via cloud call", DOMAIN)
+
+        dev_id = event.data[REQ_DEVICE_ID]
+        req_body = event.data[REQ_BODY]
+
+        entry: ConfigEntry = async_config_entry_by_device_id(hass, dev_id)
+        if not entry or not entry.entry_id:
+            raise HomeAssistantError("unknown device id")
+
+        region = entry.data[CONF_REGION]
+        client_id = entry.data[CONF_CLIENT_ID]
+        secret = entry.data[CONF_CLIENT_SECRET]
+        user_id = entry.data[CONF_USER_ID]
+        tuya_api = TuyaCloudApi(hass, region, client_id, secret, user_id)
+
+        await tuya_api.async_command_to_device(dev_id, req_body)
 
     async def _handle_set_dp(event: ServiceCall):
         """Handle set_dp service call."""
@@ -172,6 +201,10 @@ async def async_setup(hass: HomeAssistant, config: dict):
 
     hass.services.async_register(
         DOMAIN, SERVICE_SET_DP, _handle_set_dp, schema=SERVICE_SET_DP_SCHEMA
+    )
+
+    hass.services.async_register(
+        DOMAIN, SERVICE_SEND_CLOUD_COMMAND, _handle_send_cloud_command, schema=SERVICE_SEND_CLOUD_COMMAND_SCHEMA
     )
 
     discovery = TuyaDiscovery(_device_discovered)
@@ -394,7 +427,7 @@ async def update_listener(hass: HomeAssistant, config_entry: ConfigEntry):
 
 
 async def async_remove_config_entry_device(
-    hass: HomeAssistant, config_entry: ConfigEntry, device_entry: dr.DeviceEntry
+        hass: HomeAssistant, config_entry: ConfigEntry, device_entry: dr.DeviceEntry
 ) -> bool:
     """Remove a config entry from a device."""
     dev_id = list(device_entry.identifiers)[0][1].split("_")[-1]
