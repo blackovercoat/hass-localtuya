@@ -402,16 +402,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unloading the Tuya platforms."""
-    # Get used platforms.
-    platforms = {}
-    disconnect_devices = []
     hass_data: HassLocalTuyaData = hass.data[DOMAIN][entry.entry_id]
 
     # Unsub listeners.
     [unsub() for unsub in hass_data.unsub_listeners]
 
     for dev in hass_data.devices.values():
-        disconnect_devices.append(asyncio.create_task(dev.close()))
+        asyncio.create_task(dev.close())
 
     # Unload the platforms.
     await hass.config_entries.async_unload_platforms(entry, PLATFORMS.values())
@@ -485,7 +482,7 @@ async def async_remove_orphan_entities(hass, entry):
 
 @callback
 def check_if_device_disabled(hass: HomeAssistant, entry: ConfigEntry, dev_id):
-    """Return whether if the device disbaled or not."""
+    """Return whether if the device disabled or not."""
     ent_reg = er.async_get(hass)
     entries = er.async_entries_for_config_entry(ent_reg, entry.entry_id)
     ha_device_id: str = None
